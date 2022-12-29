@@ -101,8 +101,6 @@ struct variant_alternative<Index, const volatile Variant> {
 };
 
 namespace variant_utils {
-template <typename T, typename... Types>
-inline constexpr size_t type_index = variant_union<Types...>::template get_type_index<0>(in_place_type<T>);
 
 // VISIT
 
@@ -272,20 +270,20 @@ constexpr const variant_alternative_t<Index, variant<Args...>>&& get(const varia
 
 template <class T, class... Args>
 constexpr T& get(variant<Args...>& v) {
-  return get<variant_utils::type_index<T, Args...>>(v);
+  return get<variant_utils::index_chooser_v<T, variant<Args...>>>(v);
 }
 
 template <class T, class... Args>
 constexpr T&& get(variant<Args...>&& v) {
-  return std::move(get<variant_utils::type_index<T, Args...>>(v));
+  return std::move(get<variant_utils::index_chooser_v<T, variant<Args...>>>(v));
 }
 
 template <class T, class... Args>
 constexpr const T& get(const variant<Args...>& v) {
-  return get<variant_utils::type_index<T, Args...>>(v);
+  return get<variant_utils::index_chooser_v<T, variant<Args...>>>(v);
 }
 
 template <class T, class... Args>
 constexpr const T&& get(const variant<Args...>&& v) {
-  return std::move(get<variant_utils::type_index<T, Args...>>(v));
+  return std::move(get<variant_utils::index_chooser_v<T, variant<Args...>>>(v));
 }

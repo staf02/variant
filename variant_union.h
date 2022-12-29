@@ -4,9 +4,7 @@
 
 namespace variant_utils {
 template <typename... Rest>
-union variant_union {
-
-};
+union variant_union {};
 
 template <typename First, typename... Rest>
 union variant_union<First, Rest...> {
@@ -55,13 +53,13 @@ union variant_union<First, Rest...> {
   }
 
   template <size_t Index, typename... Args>
-  decltype(auto) emplace(in_place_index_t<Index>, Args&& ...args) {
+  decltype(auto) emplace(in_place_index_t<Index>, Args&&... args) {
     return rest.template emplace<Index - 1>(in_place_index<Index - 1>, std::forward<Args>(args)...);
   }
 
   template <size_t Index, typename... Args>
-  decltype(auto) emplace(in_place_index_t<0>, Args&& ...args) {
-    new(&first) uninit_value<First>(std::forward<Args>(args)...);
+  decltype(auto) emplace(in_place_index_t<0>, Args&&... args) {
+    new (&first) uninit_value<First>(std::forward<Args>(args)...);
     return first.get();
   }
 
@@ -83,21 +81,10 @@ union variant_union<First, Rest...> {
     return first.get();
   }
 
-  template <size_t Index, typename T>
-  static constexpr size_t get_type_index(in_place_type_t<T>) {
-    return variant_union<Rest...>::template get_type_index<Index + 1>(in_place_type<T>);
-  }
-
-  template <size_t Index>
-  static constexpr size_t get_type_index(in_place_type_t<First>) {
-    return Index;
-  }
-
   constexpr ~variant_union() = default;
 
 private:
   uninit_value<First> first;
   variant_union<Rest...> rest;
-
 };
 } // namespace variant_utils

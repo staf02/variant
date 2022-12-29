@@ -104,7 +104,7 @@ private:
 
 template <class T, class... Args>
 constexpr bool holds_alternative(const variant<Args...>& v) noexcept {
-  return v.index() == variant_utils::type_index<T, Args...>;
+  return v.index() == variant_utils::index_chooser_v<T, variant<Args...>>;
 }
 
 template <size_t I, class... Args>
@@ -123,8 +123,8 @@ get_if(const variant<Args...>* pv) noexcept {
 
 template <class T, class... Args>
 constexpr std::add_pointer_t<T> get_if(variant<Args...>* pv) noexcept {
-  if (pv->index() == variant_utils::type_index<T, Args...>) {
-    return std::addressof(get<variant_utils::type_index<T, Args...>>(*pv));
+  if (pv->index() == variant_utils::index_chooser_v<T, variant<Args...>>) {
+    return std::addressof(get<variant_utils::index_chooser_v<T, variant<Args...>>>(*pv));
   }
   return nullptr;
 }
