@@ -1,0 +1,12 @@
+Waiting to take filesystem lock on /home/staf02/vcpkg/.vcpkg-root...
+Detecting compiler hash for triplet x64-linux...
+All requested packages are currently installed.
+Restored 0 packages from /home/staf02/.cache/vcpkg/archives in 996 ns. Use --debug to see more details.
+
+Total elapsed time: 3.913 s
+
+The package gtest provides CMake targets:
+
+    find_package(GTest CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
+

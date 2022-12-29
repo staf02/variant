@@ -1,0 +1,4 @@
+/home/staf02/variant-staf02/cmake-build-SanitizedDebug/CMakeFiles/tests.dir
+/home/staf02/variant-staf02/cmake-build-SanitizedDebug/CMakeFiles/main.dir
+/home/staf02/variant-staf02/cmake-build-SanitizedDebug/CMakeFiles/edit_cache.dir
+/home/staf02/variant-staf02/cmake-build-SanitizedDebug/CMakeFiles/rebuild_cache.dir
