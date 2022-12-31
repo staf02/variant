@@ -25,25 +25,29 @@ public:
   variant& operator=(variant const& other) = default;
   variant& operator=(variant&& other) = default;
 
-  template <typename T,
-            std::enable_if_t<variant_utils::variant_traits<Types...>::template converting_constructible<T>, int> = 0>
+  template <typename T, std::enable_if_t<(sizeof...(Types) > 0) && !std::is_same_v<std::decay_t<T>, variant> &&
+                                             !variant_utils::is_type_spec_v<T, in_place_type_t> &&
+                                             !variant_utils::is_size_spec_v<T, in_place_index_t> &&
+                                             std::is_constructible_v<variant_utils::find_overload_t<T, Types...>, T>,
+                                         int> = 0>
   constexpr variant(T&& t) noexcept(
       variant_utils::variant_traits<Types...>::template nothrow_converting_constructible<T>)
-      : variant(in_place_index<variant_utils::index_chooser_v<T, variant<Types...>>>, std::forward<T>(t)) {}
+      : variant(in_place_type_t<variant_utils::find_overload_t<T, Types...>>(), std::forward<T>(t)) {}
 
-  template <typename T,
-            std::enable_if_t<variant_utils::variant_traits<Types...>::template converting_constructible<T>, int> = 0>
+  template <typename T, std::enable_if_t<(sizeof...(Types) > 0) && !std::is_same_v<std::decay_t<T>, variant> &&
+                                             std::is_assignable_v<variant_utils::find_overload_t<T, Types...>&, T> &&
+                                             std::is_constructible_v<variant_utils::find_overload_t<T, Types...>, T>,
+                                         int> = 0>
   constexpr variant&
   operator=(T&& t) noexcept(variant_utils::variant_traits<Types...>::template nothrow_converting_assignable<T>) {
-    constexpr size_t j = variant_utils::index_chooser_v<T, variant<Types...>>;
-    if (j == this->index()) {
-      this->get<j>(in_place_index<j>) = std::forward<T>(t);
+    using Target = variant_utils::find_overload_t<T, Types...>;
+    if (this->index() == variant_utils::type_index_v<Target, Types...>) {
+      ::get<variant_utils::type_index_v<Target, Types...>>(*this) = std::forward<T>(t);
     } else {
-      using T_j = variant_alternative<j, variant<Types...>>;
-      if (std::is_nothrow_constructible_v<T_j, T> || !std::is_nothrow_move_constructible_v<T_j>) {
-        this->emplace<j>(std::forward<T>(t));
+      if constexpr (std::is_nothrow_constructible_v<Target, T> || !std::is_nothrow_move_constructible_v<Target>) {
+        this->template emplace<variant_utils::type_index_v<Target, Types...>>(std::forward<T>(t));
       } else {
-        operator=(variant(std::forward<T>(t)));
+        this->operator=(variant(std::forward<T>(t)));
       }
     }
     return *this;
@@ -52,15 +56,15 @@ public:
   constexpr ~variant() = default;
 
   template <size_t Index, typename... Args,
-            std::enable_if_t<variant_utils::variant_traits<Types...>::template in_place_index_constructible_base<
-                                 Index>::template in_place_index_constructible<Args...>,
-                             int> = 0>
-  explicit constexpr variant(in_place_index_t<Index>, Args&&... args)
-      : base(in_place_index<Index>, std::forward<Args>(args)...),
-        variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>(
-            variant_utils::default_constructor_tag()) {}
+      std::enable_if_t<Index < sizeof...(Types) &&
+          std::is_constructible_v<variant_utils::types_at_t<Index, Types...>, Args...>, int> = 0>
+      explicit constexpr variant(in_place_index_t<Index>,
+                                            Args&&... args) : base(in_place_index<Index>, std::forward<Args>(args)...),
+      variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>(
+          variant_utils::default_constructor_tag()) {}
 
-  template <class T, class... Args>
+  template<typename T, typename... Args, std::enable_if_t<
+                                              variant_utils::exactly_once_v<T, Types...> && std::is_constructible_v<T, Args...>, int> = 0>
   constexpr explicit variant(in_place_type_t<T>, Args&&... args)
       : base(in_place_index<variant_utils::index_chooser_v<T, variant<Types...>>>, std::forward<Args>(args)...),
         variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>(

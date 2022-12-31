@@ -1,6 +1,6 @@
 #pragma once
-#include "variant_utils.h"
 #include "variant.h"
+#include "variant_utils.h"
 #include <type_traits>
 
 namespace variant_utils {
@@ -52,16 +52,8 @@ struct variant_traits {
                         std::is_constructible_v<
                             variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>);
 
-  template<size_t Index, typename = std::enable_if_t<(Index < sizeof...(Types))>>
+  template <size_t Index, typename = std::enable_if_t<(Index < sizeof...(Types))>>
   using to_type = variant_alternative_t<Index, variant<Types...>>;
-
-  template <size_t I, std::enable_if_t<(I < sizeof...(Types)), int> = 0>
-  struct in_place_index_constructible_base {
-    template <typename ...F_Types>
-    static constexpr bool in_place_index_constructible = std::is_constructible_v<variant_alternative_t<I, variant<Types...>>, F_Types...>;
-  };
-
-
 
   // The following nothrow traits are for non-trivial SMFs. Trivial SMFs
   // are always nothrow.
@@ -72,11 +64,17 @@ struct variant_traits {
   static constexpr bool nothrow_copy_assign = false;
   static constexpr bool nothrow_move_assign = nothrow_move_ctor && (std::is_nothrow_move_assignable_v<Types> && ...);
 
-  template <typename T, std::enable_if_t<index_chooser_v<T, variant<Types...>> < sizeof...(Types), int> = 0>
-                        static constexpr bool nothrow_converting_constructible = std::is_nothrow_constructible_v<variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>;
-  template <typename T, std::enable_if_t<index_chooser_v<T, variant<Types...>> < sizeof...(Types), int> = 0>
-                        static constexpr bool nothrow_converting_assignable = nothrow_converting_constructible<T> &&
-                            std::is_nothrow_assignable_v<variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>;
+  template <typename T,
+            std::enable_if_t<index_chooser_v<T, variant<Types...>><sizeof...(Types), int> = 0> static constexpr bool
+                nothrow_converting_constructible = std::is_nothrow_constructible_v<
+                    variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>;
+  template <typename T,
+            std::enable_if_t<index_chooser_v<T, variant<Types...>><sizeof...(Types), int> = 0> static constexpr bool
+                nothrow_converting_assignable = nothrow_converting_constructible<T>&& std::is_nothrow_assignable_v<
+                    variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>;
 
+  template <size_t Index, typename... Args>
+  static constexpr bool in_place_index_ctor =
+      Index < sizeof...(Types) && std::is_constructible_v<variant_utils::types_at_t<Index, Types...>, Args...>;
 };
 } // namespace variant_utils

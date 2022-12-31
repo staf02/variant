@@ -12,7 +12,9 @@
 
 
 int main() {
-  auto t = variant_utils::index_chooser_v<int, variant<int, const int, int const, volatile int>>;
-  std::cout << t;
+  std::cout << variant_utils::index_chooser_v<std::vector<int>, variant<std::vector<int>, throwing_move_operator_t>>;
+  using V = variant<std::vector<int>, throwing_move_operator_t>;
+  std::vector<int> v1 = std::vector{1, 2, 3};
+  V v = v1;
   return 0;
 };

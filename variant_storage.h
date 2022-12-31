@@ -32,17 +32,19 @@ public:
   constexpr variant_storage_dtor_base() = default;
   constexpr variant_storage_dtor_base(variant_storage_dtor_base const& other) = default;
 
-  template <size_t Index, typename... ConstructorRest>
-  explicit constexpr variant_storage_dtor_base(in_place_index_t<Index>, ConstructorRest&&... rest)
-      : storage(in_place_index<Index>, std::forward<ConstructorRest>(rest)...), index_(Index) {}
+  template <
+      size_t Index, typename... Args,
+      std::enable_if_t<
+          Index<sizeof...(Types) && std::is_constructible_v<variant_utils::types_at_t<Index, Types...>, Args...>, int> =
+              0> explicit constexpr variant_storage_dtor_base(in_place_index_t<Index>,
+                                                              Args&&... args) : storage(in_place_index<Index>,
+                                                                                        std::forward<Args>(args)...),
+      index_(Index) {}
 
   void reset() {
     if (index_ != variant_npos) {
-      variant_utils::visit_index<void>(
-          [this](auto this_index) {
-            this->storage.template reset<this_index>();
-          },
-          variant_cast(*this));
+      variant_utils::visit_index<void>([this](auto this_index) { this->storage.template reset<this_index>(); },
+                                       variant_cast(*this));
       index_ = variant_npos;
     }
   }
@@ -61,17 +63,18 @@ public:
   constexpr variant_storage_dtor_base() = default;
   constexpr variant_storage_dtor_base(variant_storage_dtor_base const& other) = default;
 
-  template <size_t Index, typename... ConstructorRest>
-  explicit constexpr variant_storage_dtor_base(in_place_index_t<Index>, ConstructorRest&&... rest)
-      : storage(in_place_index<Index>, std::forward<ConstructorRest>(rest)...), index_(Index) {}
+  template <
+      size_t Index, typename... Args,
+      std::enable_if_t<
+          Index<sizeof...(Types) && std::is_constructible_v<variant_utils::types_at_t<Index, Types...>, Args...>, int> =
+              0>
+  explicit constexpr variant_storage_dtor_base(in_place_index_t<Index>, Args&&... args)
+      : storage(in_place_index<Index>, std::forward<Args>(args)...), index_(Index) {}
 
   void reset() {
     if (index_ != variant_npos) {
-      variant_utils::visit_index<void>(
-          [this](auto this_index) {
-            this->storage.template reset<this_index>();
-          },
-          variant_cast(*this));
+      variant_utils::visit_index<void>([this](auto this_index) { this->storage.template reset<this_index>(); },
+                                       variant_cast(*this));
       index_ = variant_npos;
     }
   }
@@ -111,7 +114,6 @@ public:
 
     variant_utils::visit_index<void>(
         [&this_variant, &other_variant](auto this_index, auto other_index) {
-
           if constexpr (this_index == other_index) {
             get<this_index>(this_variant) = get<other_index>(std::move(other_variant));
           } else {
@@ -155,9 +157,7 @@ public:
     variant<Types...>&& other_variant = variant_cast(std::forward<decltype(other)>(other));
     if (!other_variant.valueless_by_exception()) {
       variant_utils::visit_index<void>(
-          [this, &other](auto index) {
-            this->storage.template construct<index>(std::move(other.storage));
-          },
+          [this, &other](auto index) { this->storage.template construct<index>(std::move(other.storage)); },
           std::move(other_variant));
     }
     this->index_ = other.index_;
@@ -252,10 +252,7 @@ public:
     variant<Types...> const& other_variant = variant_cast(std::forward<decltype(other)>(other));
     if (!other_variant.valueless_by_exception()) {
       variant_utils::visit_index<void>(
-          [this, &other](auto index) {
-            this->storage.template construct<index>(other.storage);
-          },
-          other_variant);
+          [this, &other](auto index) { this->storage.template construct<index>(other.storage); }, other_variant);
     }
     this->index_ = other.index_;
   }

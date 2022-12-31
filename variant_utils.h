@@ -5,7 +5,7 @@
 #include <functional>
 
 template <typename... Args>
-class variant;
+struct variant;
 
 namespace variant_utils {
 template <typename... Other>
@@ -13,23 +13,22 @@ union variant_union;
 } // namespace variant_utils
 
 // VARIANT SIZE
-template<typename _Variant>
+template <typename _Variant>
 struct variant_size;
 
-template<typename _Variant>
+template <typename _Variant>
 struct variant_size<const _Variant> : variant_size<_Variant> {};
 
-template<typename _Variant>
+template <typename _Variant>
 struct variant_size<volatile _Variant> : variant_size<_Variant> {};
 
-template<typename _Variant>
+template <typename _Variant>
 struct variant_size<const volatile _Variant> : variant_size<_Variant> {};
 
-template<typename... _Types>
-struct variant_size<variant<_Types...>>
-    : std::integral_constant<size_t, sizeof...(_Types)> {};
+template <typename... _Types>
+struct variant_size<variant<_Types...>> : std::integral_constant<size_t, sizeof...(_Types)> {};
 
-template<typename _Variant>
+template <typename _Variant>
 inline constexpr size_t variant_size_v = variant_size<_Variant>::value;
 
 // bad_variant_access
@@ -78,12 +77,12 @@ struct monostate {};
 template <size_t Index, typename Variant>
 struct variant_alternative;
 
-template <size_t Index, typename _First, typename... _Rest>
-struct variant_alternative<Index, variant<_First, _Rest...>> : variant_alternative<Index - 1, variant<_Rest...>> {};
+template <size_t Index, typename First, typename... Rest>
+struct variant_alternative<Index, variant<First, Rest...>> : variant_alternative<Index - 1, variant<Rest...>> {};
 
-template <typename _First, typename... _Rest>
-struct variant_alternative<0, variant<_First, _Rest...>> {
-  using type = _First;
+template <typename First, typename... Rest>
+struct variant_alternative<0, variant<First, Rest...>> {
+  using type = First;
 };
 
 template <size_t Index, typename Variant>
@@ -146,7 +145,7 @@ struct visit_chooser<true, IndexChooser, ReturnType> {
 
   template <size_t CurrentIndex, size_t... Indexes, typename Visitor, typename Variant, typename... Variants>
   static constexpr ReturnType choose(Visitor&& vis, Variant&& var, Variants&&... vars) {
-    constexpr size_t size = variant_size_v<std::__remove_cvref_t<Variant>>;
+    constexpr size_t size = variant_size_v<std::remove_cvref_t<Variant>>;
     if (var.index() == CurrentIndex) {
       return visit_chooser<CurrentIndex + 0 < size, IndexChooser, ReturnType>::template run_func<CurrentIndex + 0,
                                                                                                  Indexes...>(
@@ -192,58 +191,186 @@ constexpr R visit_index(Visitor&& vis, Variants&&... vars) {
   return visit_chooser<true, true, R>::template choose<0>(std::forward<Visitor>(vis), std::forward<Variants>(vars)...);
 }
 
-/// Alias template index_sequence
-template <size_t... _Idx>
-using index_sequence = std::integer_sequence<size_t, _Idx...>;
+template <size_t ind, bool less, typename... Ts>
+struct types_at_impl {};
 
-/// Alias template make_index_sequence
-template <size_t _Num>
-using make_index_sequence = std::make_integer_sequence<size_t, _Num>;
-
-// Helper used to check for valid conversions that don't involve narrowing.
-template <typename _Ti>
-struct _Arr {
-  _Ti _M_x[1];
+template <size_t ind, typename... Ts>
+struct types_at_impl<ind, true, Ts...> {
+  using type = std::tuple_element_t<ind, std::tuple<Ts...>>;
 };
 
-// "Build an imaginary function FUN(Ti) for each alternative type Ti"
-template <size_t _Ind, typename _Tp, typename _Ti, typename = void>
-struct _Build_FUN {
-  // This function means 'using _Build_FUN<I, T, Ti>::_S_fun;' is valid,
-  // but only static functions will be considered in the call below.
-  void _S_fun();
+template <size_t ind, typename... Ts>
+using types_at_t = typename types_at_impl < ind,
+      ind<sizeof...(Ts), Ts...>::type;
+
+template <bool is_same, typename Target, typename... Ts>
+struct type_index_impl {
+  static constexpr size_t ind = 0;
 };
 
-// "... for which Ti x[] = {std::forward<T>(t)}; is well-formed."
-template <size_t _Ind, typename _Tp, typename _Ti>
-struct _Build_FUN<_Ind, _Tp, _Ti, std::void_t<decltype(_Arr<_Ti>{{std::declval<_Tp>()}})>> {
-  // This is the FUN function for type _Ti, with index _Ind
-  static std::integral_constant<size_t, _Ind> _S_fun(_Ti);
+template <typename Target, typename T, typename... Ts>
+struct type_index_impl<false, Target, T, Ts...> {
+  static constexpr size_t ind = type_index_impl<std::is_same_v<T, Target>, Target, Ts...>::ind + 1;
 };
 
-template <typename _Tp, typename Variant, typename = make_index_sequence<variant_size_v<Variant>>>
-struct _Build_FUNs;
+template <typename Target, typename T, typename... Ts>
+inline constexpr size_t type_index_v = type_index_impl<std::is_same_v<T, Target>, Target, Ts...>::ind;
 
-template <typename _Tp, typename... _Ti, size_t... _Ind>
-struct _Build_FUNs<_Tp, variant<_Ti...>, index_sequence<_Ind...>> : _Build_FUN<_Ind, _Tp, _Ti>... {
-  using _Build_FUN<_Ind, _Tp, _Ti>::_S_fun...;
+template <typename T, typename Base>
+struct variant_type_index;
+
+template <typename T, template <typename...> typename base, typename... Ts>
+struct variant_type_index<T, base<Ts...>> {
+  static constexpr size_t value = type_index_v<T, Ts...>;
 };
 
-// The index j of the overload FUN(Tj) selected by overload resolution
-// for FUN(std::forward<_Tp>(t))
-template <typename _Tp, typename Variant>
-using _FUN_type =
-    decltype(_Build_FUNs<_Tp, Variant>::_S_fun(std::declval<_Tp>())); // integral_constant<size_t, current_index>
+template <typename Target, typename Variant>
+inline constexpr size_t index_chooser_v = variant_type_index<Target, Variant>::value;
 
-// The index selected for FUN(std::forward<T>(t)), or variant_npos if none.
-template <typename _Tp, typename Variant, typename = void>
-struct __accepted_index : std::integral_constant<size_t, 0> {};
+template <size_t I, typename T>
+struct alternative;
 
-template <typename _Tp, typename Variant>
-struct __accepted_index<_Tp, Variant, std::void_t<_FUN_type<_Tp, Variant>>> : _FUN_type<_Tp, Variant> {};
+template <size_t I, template <typename...> typename base, typename... Ts>
+struct alternative<I, base<Ts...>> {
+  using type = types_at_t<I, Ts...>;
+};
 
-template <typename T, typename Variant>
-static constexpr size_t index_chooser_v = __accepted_index<T, Variant>::value;
+template <size_t I, template <typename...> typename base, typename... Ts>
+struct alternative<I, const base<Ts...>> {
+  using type = const types_at_t<I, Ts...>;
+};
+
+template <size_t I, template <typename...> typename base, typename... Ts>
+struct alternative<I, base<Ts...>&&> {
+  using type = types_at_t<I, Ts...>&&;
+};
+
+template <size_t I, template <typename...> typename base, typename... Ts>
+struct alternative<I, base<Ts...> const&&> {
+  using type = const types_at_t<I, Ts...>&&;
+};
+
+template <size_t I, template <typename...> typename base, typename... Ts>
+struct alternative<I, base<Ts...>&> {
+  using type = types_at_t<I, Ts...>&;
+};
+
+template <size_t I, template <typename...> typename base, typename... Ts>
+struct alternative<I, base<Ts...> const&> {
+  using type = types_at_t<I, Ts...> const&;
+};
+
+template <size_t I, template <bool, typename...> typename base, bool flag, typename... Ts>
+struct alternative<I, base<flag, Ts...>> {
+  using type = types_at_t<I, Ts...>;
+};
+
+template <size_t I, template <bool, typename...> typename base, bool flag, typename... Ts>
+struct alternative<I, base<flag, Ts...> const> {
+  using type = const types_at_t<I, Ts...>;
+};
+
+template <size_t I, template <bool, typename...> typename base, bool flag, typename... Ts>
+struct alternative<I, base<flag, Ts...>&&> {
+  using type = types_at_t<I, Ts...>&&;
+};
+
+template <size_t I, template <bool, typename...> typename base, bool flag, typename... Ts>
+struct alternative<I, base<flag, Ts...> const&&> {
+  using type = types_at_t<I, Ts...> const&&;
+};
+
+template <size_t I, template <bool, typename...> typename base, bool flag, typename... Ts>
+struct alternative<I, base<flag, Ts...>&> {
+  using type = types_at_t<I, Ts...>&;
+};
+
+template <size_t I, template <bool, typename...> typename base, bool flag, typename... Ts>
+struct alternative<I, base<flag, Ts...> const&> {
+  using type = types_at_t<I, Ts...> const&;
+};
+
+template <size_t I, typename T>
+using alternative_t = typename alternative<I, T>::type;
+
+template <class T>
+struct alt_indexes;
+
+template <template <typename...> typename base, typename... Ts>
+struct alt_indexes<base<Ts...>> {
+  using type = std::index_sequence_for<Ts...>;
+};
+
+template <template <bool, typename...> typename base, bool flag, typename... Ts>
+struct alt_indexes<base<flag, Ts...>> {
+  using type = std::index_sequence_for<Ts...>;
+};
+
+template <class T>
+using alt_indexes_t = typename alt_indexes<std::decay_t<T>>::type;
+
+template <size_t index, bool empty, typename... Ts>
+struct alt_indexes_by_ind {
+  using type = std::index_sequence<>;
+};
+
+template <size_t index, typename... Ts>
+struct alt_indexes_by_ind<index, true, Ts...> {
+  using type = alt_indexes_t<std::decay_t<types_at_t<index, Ts...>>>;
+};
+
+template <size_t index, typename... Ts>
+using alt_indexes_by_ind_t = typename alt_indexes_by_ind < index,
+      index<sizeof...(Ts), Ts...>::type;
+
+template <typename T>
+struct find_overload_array {
+  T x[1];
+};
+
+template <typename U, typename T, size_t ind, typename = void>
+struct fun {
+  T operator()();
+};
+
+template <typename U, typename T, size_t ind>
+struct fun<U, T, ind,
+           std::enable_if_t<(!std::is_same_v<std::decay_t<T>, bool> || std::is_same_v<std::decay_t<U>, bool>)&&std::
+                                is_same_v<void, std::void_t<decltype(find_overload_array<T>{{std::declval<U>()}})>>>> {
+  T operator()(T);
+};
+
+template <typename U, typename IndexSequence, typename... Ts>
+struct find_overload;
+
+template <typename U, size_t... Is, typename... Ts>
+struct find_overload<U, std::index_sequence<Is...>, Ts...> : fun<U, Ts, Is>... {
+  using fun<U, Ts, Is>::operator()...;
+};
+
+template <typename U, typename... Ts>
+using find_overload_t = typename std::invoke_result_t<find_overload<U, std::index_sequence_for<Ts...>, Ts...>, U>;
+
+template <typename T, typename... Ts>
+inline constexpr bool exactly_once_v = (std::is_same_v<T, Ts> + ...) == 1;
+
+template <typename T, template <typename...> typename Template>
+struct is_type_spec : std::false_type {};
+
+template <template <typename...> typename Template, typename... Args>
+struct is_type_spec<Template<Args...>, Template> : std::true_type {};
+
+template <typename T, template <typename...> typename Template>
+inline constexpr bool is_type_spec_v = is_type_spec<T, Template>::value;
+
+template <typename T, template <size_t...> typename Template>
+struct is_size_spec : std::false_type {};
+
+template <template <size_t...> typename Template, size_t... Args>
+struct is_size_spec<Template<Args...>, Template> : std::true_type {};
+
+template <typename T, template <size_t...> typename Template>
+inline constexpr bool is_size_spec_v = is_size_spec<T, Template>::value;
 } // namespace variant_utils
 
 template <size_t Index, class... Args>
