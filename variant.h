@@ -3,6 +3,7 @@
 #include "variant_storage.h"
 #include "variant_union.h"
 #include "variant_utils.h"
+#include <algorithm>
 
 template <typename... Types>
 struct variant
@@ -18,7 +19,7 @@ public:
                                                              Types...>;
   using base::base;
 
-  constexpr variant() noexcept = default;
+  constexpr variant() = default;
   constexpr variant(variant const& other) = default;
   constexpr variant(variant&& other) = default;
   variant& operator=(variant const& other) = default;
@@ -26,14 +27,16 @@ public:
 
   template <typename T,
             std::enable_if_t<variant_utils::variant_traits<Types...>::template converting_constructible<T>, int> = 0>
-  constexpr variant(T&& t)
+  constexpr variant(T&& t) noexcept(
+      variant_utils::variant_traits<Types...>::template nothrow_converting_constructible<T>)
       : variant(in_place_index<variant_utils::index_chooser_v<T, variant<Types...>>>, std::forward<T>(t)) {}
 
   template <typename T,
             std::enable_if_t<variant_utils::variant_traits<Types...>::template converting_constructible<T>, int> = 0>
-  constexpr variant& operator=(T&& t) {
+  constexpr variant&
+  operator=(T&& t) noexcept(variant_utils::variant_traits<Types...>::template nothrow_converting_assignable<T>) {
     constexpr size_t j = variant_utils::index_chooser_v<T, variant<Types...>>;
-    if (j == index()) {
+    if (j == this->index()) {
       this->get<j>(in_place_index<j>) = std::forward<T>(t);
     } else {
       using T_j = variant_alternative<j, variant<Types...>>;
@@ -48,7 +51,10 @@ public:
 
   constexpr ~variant() = default;
 
-  template <size_t Index, class... Args>
+  template <size_t Index, typename... Args,
+            std::enable_if_t<variant_utils::variant_traits<Types...>::template in_place_index_constructible_base<
+                                 Index>::template in_place_index_constructible<Args...>,
+                             int> = 0>
   explicit constexpr variant(in_place_index_t<Index>, Args&&... args)
       : base(in_place_index<Index>, std::forward<Args>(args)...),
         variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>(
@@ -59,10 +65,6 @@ public:
       : base(in_place_index<variant_utils::index_chooser_v<T, variant<Types...>>>, std::forward<Args>(args)...),
         variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>(
             variant_utils::default_constructor_tag()) {}
-
-  constexpr size_t index() const noexcept {
-    return this->index_;
-  }
 
   template <class T, class... Args>
   T& emplace(Args&&... args) {
@@ -75,6 +77,55 @@ public:
     auto& res = this->storage.template emplace<Index>(in_place_index<Index>, std::forward<Args>(args)...);
     this->index_ = Index;
     return res;
+  }
+
+  void emplace_variant(variant&& other) {
+    variant_utils::visit_index<void>(
+        [this, &other](auto _index) { this->template emplace<_index>(::get<_index>(std::move(other))); },
+        std::forward<variant>(other));
+  }
+
+  void emplace_variant(variant const& other) {
+    variant_utils::visit_index<void>(
+        [this, &other](auto _index) { this->template emplace<_index>(::get<_index>(other)); }, other);
+  }
+
+  void swap(variant& other) noexcept(((std::is_nothrow_move_constructible_v<Types> &&
+                                       std::is_nothrow_swappable_v<Types>)&&...)) {
+    if (valueless_by_exception() && other.valueless_by_exception()) {
+      return;
+    } else if (valueless_by_exception()) {
+      variant_utils::visit_index<void>(
+          [this, &other](auto other_index) {
+            this->template emplace<other_index>(::get<other_index>(std::move(other)));
+          },
+          std::forward<variant>(other));
+      other.reset();
+      return;
+    } else if (other.valueless_by_exception()) {
+      variant_utils::visit_index<void>(
+          [this, &other](auto this_index) { other.template emplace<this_index>(::get<this_index>(std::move(*this))); },
+          std::forward<variant>(*this));
+      this->reset();
+      return;
+    } else {
+      variant_utils::visit_index<void>(
+          [this, &other](auto this_index, auto other_index) {
+            if constexpr (this_index == other_index) {
+              using std::swap;
+              swap(::get<this_index>(*this), ::get<this_index>(other));
+            } else {
+              auto tmp = std::move(::get<other_index>(other));
+              other.template emplace<this_index>(std::move(::get<this_index>(*this)));
+              this->template emplace<other_index>(std::move(tmp));
+            }
+          },
+          *this, other);
+    }
+  }
+
+  constexpr size_t index() const noexcept {
+    return this->index_;
   }
 
   constexpr bool valueless_by_exception() const noexcept {

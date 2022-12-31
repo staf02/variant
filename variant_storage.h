@@ -99,24 +99,26 @@ public:
 
   variant_storage_move_assign_base&
   operator=(variant_storage_move_assign_base&& other) noexcept(variant_traits<Types...>::nothrow_move_assign) {
-    variant<Types...>& this_variant = variant_cast(*this);
-    variant<Types...>&& other_variant = variant_cast(std::forward<decltype(other)>(other));
-    if (other_variant.valueless_by_exception()) {
-      if (this_variant.valueless_by_exception()) {
+    if (other.index_ == variant_npos) {
+      if (this->index_ == variant_npos) {
         return *this;
       }
       this->reset();
       return *this;
     }
+    variant<Types...>& this_variant = variant_cast(*this);
+    variant<Types...>& other_variant = variant_cast(other);
+
     variant_utils::visit_index<void>(
         [&this_variant, &other_variant](auto this_index, auto other_index) {
+
           if constexpr (this_index == other_index) {
-            get<this_index>(this_variant) = std::move(get<other_index>(other_variant));
+            get<this_index>(this_variant) = get<other_index>(std::move(other_variant));
           } else {
             this_variant.template emplace<other_index>(std::move(get<other_index>(other_variant)));
           }
         },
-        this_variant, std::move(other_variant));
+        this_variant, std::forward<variant<Types...>>(other_variant));
     return *this;
   }
 };
@@ -241,7 +243,7 @@ public:
   using base = variant_storage_copy_assign_base<variant_traits<Types...>::trivial_copy_assign, Types...>;
   using base::base;
 
-  constexpr variant_storage_copy_ctor_base()
+  constexpr variant_storage_copy_ctor_base() noexcept(variant_utils::variant_traits<Types...>::nothrow_default_ctor)
       : variant_storage_copy_ctor_base(in_place_index<0>) {}
 
   variant_storage_copy_ctor_base(variant_storage_copy_ctor_base const& other) noexcept(
@@ -270,7 +272,7 @@ public:
   using base = variant_storage_copy_assign_base<variant_traits<Types...>::trivial_copy_assign, Types...>;
   using base::base;
 
-  constexpr variant_storage_copy_ctor_base()
+  constexpr variant_storage_copy_ctor_base() noexcept(variant_utils::variant_traits<Types...>::nothrow_default_ctor)
       : variant_storage_copy_ctor_base(in_place_index<0>) {}
 
   constexpr variant_storage_copy_ctor_base(variant_storage_copy_ctor_base const& other) = default;

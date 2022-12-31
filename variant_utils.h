@@ -13,20 +13,24 @@ union variant_union;
 } // namespace variant_utils
 
 // VARIANT SIZE
-template <class T>
+template<typename _Variant>
 struct variant_size;
 
-template <class... Types>
-struct variant_size<variant<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
+template<typename _Variant>
+struct variant_size<const _Variant> : variant_size<_Variant> {};
 
-template <typename Variant>
-struct variant_size<volatile Variant> : variant_size<Variant> {};
+template<typename _Variant>
+struct variant_size<volatile _Variant> : variant_size<_Variant> {};
 
-template <typename Variant>
-struct variant_size<const volatile Variant> : variant_size<Variant> {};
+template<typename _Variant>
+struct variant_size<const volatile _Variant> : variant_size<_Variant> {};
 
-template <typename Variant>
-inline constexpr std::size_t variant_size_v = variant_size<Variant>::value;
+template<typename... _Types>
+struct variant_size<variant<_Types...>>
+    : std::integral_constant<size_t, sizeof...(_Types)> {};
+
+template<typename _Variant>
+inline constexpr size_t variant_size_v = variant_size<_Variant>::value;
 
 // bad_variant_access
 
@@ -74,12 +78,12 @@ struct monostate {};
 template <size_t Index, typename Variant>
 struct variant_alternative;
 
-template <size_t Index, typename First, typename... Rest>
-struct variant_alternative<Index, variant<First, Rest...>> : variant_alternative<Index - 1, variant<Rest...>> {};
+template <size_t Index, typename _First, typename... _Rest>
+struct variant_alternative<Index, variant<_First, _Rest...>> : variant_alternative<Index - 1, variant<_Rest...>> {};
 
-template <typename First, typename... Rest>
-struct variant_alternative<0, variant<First, Rest...>> {
-  using type = First;
+template <typename _First, typename... _Rest>
+struct variant_alternative<0, variant<_First, _Rest...>> {
+  using type = _First;
 };
 
 template <size_t Index, typename Variant>
@@ -217,7 +221,7 @@ struct _Build_FUN<_Ind, _Tp, _Ti, std::void_t<decltype(_Arr<_Ti>{{std::declval<_
   static std::integral_constant<size_t, _Ind> _S_fun(_Ti);
 };
 
-template <typename _Tp, typename _Variant, typename = make_index_sequence<variant_size_v<_Variant>>>
+template <typename _Tp, typename Variant, typename = make_index_sequence<variant_size_v<Variant>>>
 struct _Build_FUNs;
 
 template <typename _Tp, typename... _Ti, size_t... _Ind>
@@ -227,16 +231,16 @@ struct _Build_FUNs<_Tp, variant<_Ti...>, index_sequence<_Ind...>> : _Build_FUN<_
 
 // The index j of the overload FUN(Tj) selected by overload resolution
 // for FUN(std::forward<_Tp>(t))
-template <typename _Tp, typename _Variant>
+template <typename _Tp, typename Variant>
 using _FUN_type =
-    decltype(_Build_FUNs<_Tp, _Variant>::_S_fun(std::declval<_Tp>())); // integral_constant<size_t, current_index>
+    decltype(_Build_FUNs<_Tp, Variant>::_S_fun(std::declval<_Tp>())); // integral_constant<size_t, current_index>
 
 // The index selected for FUN(std::forward<T>(t)), or variant_npos if none.
-template <typename _Tp, typename _Variant, typename = void>
-struct __accepted_index : std::integral_constant<size_t, variant_npos> {};
+template <typename _Tp, typename Variant, typename = void>
+struct __accepted_index : std::integral_constant<size_t, 0> {};
 
-template <typename _Tp, typename _Variant>
-struct __accepted_index<_Tp, _Variant, std::void_t<_FUN_type<_Tp, _Variant>>> : _FUN_type<_Tp, _Variant> {};
+template <typename _Tp, typename Variant>
+struct __accepted_index<_Tp, Variant, std::void_t<_FUN_type<_Tp, Variant>>> : _FUN_type<_Tp, Variant> {};
 
 template <typename T, typename Variant>
 static constexpr size_t index_chooser_v = __accepted_index<T, Variant>::value;

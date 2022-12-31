@@ -52,6 +52,11 @@ struct uninit_value<Type, true> {
     this->~uninit_value();
   }
 
+  void swap(uninit_value& other) {
+    using std::swap;
+    swap(storage, other.storage);
+  }
+
   ~uninit_value() = default;
 
   Type storage;
@@ -93,6 +98,11 @@ struct uninit_value<Type, false> {
 
   Type&& get() && noexcept {
     return std::move(*reinterpret_cast<Type*>(&storage));
+  }
+
+  void swap(uninit_value& other) {
+    using std::swap;
+    swap(storage, other.storage);
   }
 
   void construct(uninit_value const& other) {

@@ -382,6 +382,11 @@ CMakeFiles/tests.dir/tests.cpp.o: /home/staf02/variant-staf02/tests.cpp \
   /usr/include/c++/11/debug/safe_container.h \
   /usr/include/c++/11/debug/safe_iterator.h \
   /usr/include/c++/11/debug/safe_iterator.tcc \
+  /usr/include/c++/11/variant \
+  /usr/include/c++/11/bits/enable_special_members.h \
+  /usr/include/c++/11/bits/invoke.h \
+  /usr/include/c++/11/ext/aligned_buffer.h \
+  /usr/include/c++/11/bits/parse_numbers.h \
   /home/staf02/variant-staf02/test-classes.h \
   /usr/include/c++/11/cassert \
   /usr/include/assert.h \
@@ -395,14 +400,11 @@ CMakeFiles/tests.dir/tests.cpp.o: /home/staf02/variant-staf02/tests.cpp \
   /usr/include/c++/11/tuple \
   /usr/include/c++/11/array \
   /usr/include/c++/11/bits/uses_allocator.h \
-  /usr/include/c++/11/bits/invoke.h \
   /usr/include/c++/11/bits/refwrap.h \
   /usr/include/c++/11/bits/std_function.h \
   /usr/include/c++/11/unordered_map \
-  /usr/include/c++/11/ext/aligned_buffer.h \
   /usr/include/c++/11/bits/hashtable.h \
   /usr/include/c++/11/bits/hashtable_policy.h \
-  /usr/include/c++/11/bits/enable_special_members.h \
   /usr/include/c++/11/bits/node_handle.h \
   /usr/include/c++/11/bits/unordered_map.h \
   /usr/include/c++/11/bits/erase_if.h \
@@ -438,6 +440,14 @@ CMakeFiles/tests.dir/tests.cpp.o: /home/staf02/variant-staf02/tests.cpp \
   /usr/include/c++/11/bits/ostream.tcc \
   /usr/include/c++/11/istream \
   /usr/include/c++/11/bits/istream.tcc \
+  /usr/include/c++/11/algorithm \
+  /usr/include/c++/11/bits/ranges_algo.h \
+  /usr/include/c++/11/bits/ranges_algobase.h \
+  /usr/include/c++/11/iterator \
+  /usr/include/c++/11/bits/stream_iterator.h \
+  /usr/include/c++/11/bits/ranges_util.h \
+  /usr/include/c++/11/pstl/glue_algorithm_defs.h \
+  /usr/include/c++/11/pstl/execution_defs.h \
   vcpkg_installed/x64-linux/include/gtest/gtest.h \
   /usr/include/c++/11/limits \
   /usr/include/c++/11/memory \
@@ -478,12 +488,8 @@ CMakeFiles/tests.dir/tests.cpp.o: /home/staf02/variant-staf02/tests.cpp \
   /usr/include/c++/11/bits/std_mutex.h \
   /usr/include/c++/11/backward/auto_ptr.h \
   /usr/include/c++/11/bits/ranges_uninitialized.h \
-  /usr/include/c++/11/bits/ranges_algobase.h \
-  /usr/include/c++/11/iterator \
-  /usr/include/c++/11/bits/stream_iterator.h \
   /usr/include/c++/11/bits/uses_allocator_args.h \
   /usr/include/c++/11/pstl/glue_memory_defs.h \
-  /usr/include/c++/11/pstl/execution_defs.h \
   vcpkg_installed/x64-linux/include/gtest/internal/gtest-internal.h \
   vcpkg_installed/x64-linux/include/gtest/internal/gtest-port.h \
   /usr/include/c++/11/stdlib.h \
@@ -522,8 +528,6 @@ CMakeFiles/tests.dir/tests.cpp.o: /home/staf02/variant-staf02/tests.cpp \
   /usr/include/regex.h \
   /usr/include/c++/11/any \
   /usr/include/c++/11/optional \
-  /usr/include/c++/11/variant \
-  /usr/include/c++/11/bits/parse_numbers.h \
   /usr/include/x86_64-linux-gnu/sys/wait.h \
   /usr/include/signal.h \
   /usr/include/x86_64-linux-gnu/bits/signum-generic.h \
@@ -653,6 +657,14 @@ vcpkg_installed/x64-linux/include/gtest/gtest-typed-test.h:
 
 /usr/include/x86_64-linux-gnu/bits/siginfo-consts.h:
 
+/usr/include/c++/11/cxxabi.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/sig_atomic_t.h:
+
+/usr/include/x86_64-linux-gnu/bits/signum-arch.h:
+
+/usr/include/signal.h:
+
 /usr/include/x86_64-linux-gnu/bits/confname.h:
 
 /usr/include/x86_64-linux-gnu/bits/sched.h:
@@ -668,8 +680,6 @@ vcpkg_installed/x64-linux/include/gtest/gtest-typed-test.h:
 /usr/include/c++/11/cctype:
 
 /usr/include/x86_64-linux-gnu/c++/11/bits/gthr-default.h:
-
-/usr/include/c++/11/debug/unordered_map:
 
 /usr/include/c++/11/bits/range_access.h:
 
@@ -710,6 +720,10 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-port.h:
 /usr/include/c++/11/bits/stl_construct.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/FILE.h:
+
+/usr/include/x86_64-linux-gnu/bits/signum-generic.h:
+
+/usr/include/x86_64-linux-gnu/bits/select.h:
 
 /usr/include/x86_64-linux-gnu/sys/select.h:
 
@@ -754,6 +768,10 @@ vcpkg_installed/x64-linux/include/gtest/gtest-param-test.h:
 /usr/include/c++/11/bits/ostream_insert.h:
 
 /usr/include/ctype.h:
+
+/usr/include/c++/11/debug/unordered_map:
+
+/usr/include/c++/11/pstl/glue_algorithm_defs.h:
 
 /usr/include/c++/11/bits/ostream.tcc:
 
@@ -832,10 +850,6 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-param-util.h:
 /usr/include/c++/11/bits/predefined_ops.h:
 
 /usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
-
-/usr/include/c++/11/cxxabi.h:
-
-/usr/include/x86_64-linux-gnu/bits/types/sig_atomic_t.h:
 
 /usr/include/c++/11/bits/ptr_traits.h:
 
@@ -943,6 +957,8 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-type-util.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h:
 
+/usr/include/c++/11/algorithm:
+
 /usr/include/x86_64-linux-gnu/bits/types/__sigval_t.h:
 
 /usr/include/c++/11/bits/cpp_type_traits.h:
@@ -1008,8 +1024,6 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-type-util.h:
 /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h:
 
 /usr/include/c++/11/bits/move.h:
-
-/usr/include/signal.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
 
@@ -1109,6 +1123,14 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-type-util.h:
 
 /home/staf02/variant-staf02/tests.cpp:
 
+/usr/include/x86_64-linux-gnu/bits/types/sigset_t.h:
+
+/usr/include/c++/11/bits/enable_special_members.h:
+
+/usr/include/c++/11/bits/invoke.h:
+
+/usr/include/c++/11/bits/ranges_algo.h:
+
 /home/staf02/variant-staf02/variant.h:
 
 /home/staf02/variant-staf02/enable_special_members.h:
@@ -1116,8 +1138,6 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-type-util.h:
 /usr/include/c++/11/clocale:
 
 /usr/include/c++/11/bits/unordered_map.h:
-
-/usr/include/x86_64-linux-gnu/bits/signum-arch.h:
 
 vcpkg_installed/x64-linux/include/gtest/gtest-death-test.h:
 
@@ -1145,17 +1165,11 @@ vcpkg_installed/x64-linux/include/gtest/gtest-death-test.h:
 
 /usr/include/c++/11/array:
 
-/usr/include/c++/11/bits/invoke.h:
-
 /usr/include/c++/11/bits/refwrap.h:
 
 /usr/include/c++/11/unordered_map:
 
 /usr/include/c++/11/bits/hashtable_policy.h:
-
-/usr/include/x86_64-linux-gnu/bits/types/sigset_t.h:
-
-/usr/include/c++/11/bits/enable_special_members.h:
 
 /usr/include/c++/11/ext/aligned_buffer.h:
 
@@ -1172,8 +1186,6 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-port-arch.h:
 /usr/include/c++/11/debug/safe_local_iterator.tcc:
 
 /home/staf02/variant-staf02/variant_union.h:
-
-/usr/include/c++/11/bits/locale_classes.tcc:
 
 /usr/include/c++/11/debug/multiset.h:
 
@@ -1196,6 +1208,18 @@ vcpkg_installed/x64-linux/include/gtest/internal/gtest-port-arch.h:
 /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h:
 
 /usr/include/c++/11/bits/istream.tcc:
+
+/usr/include/c++/11/bits/ranges_algobase.h:
+
+/usr/include/c++/11/bits/locale_classes.tcc:
+
+/usr/include/c++/11/bits/ranges_util.h:
+
+/usr/include/c++/11/bits/sstream.tcc:
+
+/usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h:
+
+/usr/include/c++/11/pstl/execution_defs.h:
 
 vcpkg_installed/x64-linux/include/gtest/gtest.h:
 
@@ -1285,14 +1309,6 @@ vcpkg_installed/x64-linux/include/gtest/gtest.h:
 
 /usr/include/c++/11/bits/ranges_uninitialized.h:
 
-/usr/include/c++/11/bits/ranges_algobase.h:
-
-/usr/include/c++/11/bits/sstream.tcc:
-
-/usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h:
-
-/usr/include/c++/11/pstl/execution_defs.h:
-
 /usr/include/x86_64-linux-gnu/bits/signal_ext.h:
 
 /usr/include/x86_64-linux-gnu/sys/wait.h:
@@ -1304,10 +1320,6 @@ vcpkg_installed/x64-linux/include/gtest/gtest.h:
 /usr/include/x86_64-linux-gnu/bits/statx.h:
 
 /usr/include/c++/11/optional:
-
-/usr/include/x86_64-linux-gnu/bits/select.h:
-
-/usr/include/x86_64-linux-gnu/bits/signum-generic.h:
 
 /usr/include/x86_64-linux-gnu/bits/sigcontext.h:
 

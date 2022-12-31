@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
+#include <variant>
 #include "test-classes.h"
 #include "variant.h"
 #include "gtest/gtest.h"
@@ -160,7 +160,7 @@ TEST(traits, converting_assignment) {
   ASSERT_FALSE(assignment5);
   ASSERT_FALSE(assignment6);
 }
-/*
+
 TEST(traits, variant_size) {
   using variant1 = variant<int, std::string, variant<int, std::vector<int>, size_t>, bool>;
   ASSERT_EQ(variant_size_v<variant1>, 4);
@@ -169,7 +169,7 @@ TEST(traits, variant_size) {
   ASSERT_EQ(variant_size_v<variant1>, variant_size<variant1>{});
   ASSERT_EQ(variant_size_v<variant1>, variant_size<variant1>{}());
 }
-*/
+
 TEST(traits, variant_alternative) {
   using variant1 = variant<int, std::string, variant<int, std::vector<int>, size_t>, bool>;
   using T1 = variant_alternative_t<1, variant1>;
@@ -308,7 +308,7 @@ TEST(correctness, alternative_selection) {
   }
 }
 
-/*
+
 TEST(correctness, valueless_by_exception) {
   using V = variant<std::vector<int>, throwing_move_operator_t>;
   auto v1 = std::vector{1, 2, 3};
@@ -331,7 +331,6 @@ TEST(correctness, valueless_by_exception) {
   ASSERT_FALSE(w.valueless_by_exception());
   ASSERT_EQ(get<0>(w), v2);
 }
-*/
 
 TEST(correctness, assign) {
   struct bruh_conversion {
@@ -426,7 +425,6 @@ constexpr bool get_if_test_basic() {
 
 static_assert(get_if_test_basic(), "Bad get_if behavior");
 
-/*
 TEST(correctness, multiple_same_types) {
   variant<int, const int, int const, volatile int const> v;
   v.emplace<int>(4);
@@ -449,7 +447,7 @@ TEST(correctness, multiple_same_types) {
 
   ASSERT_THROW(get<1>(v), bad_variant_access);
 }
-*/
+
 TEST(correctness, overloaded_address) {
   using V = variant<int, broken_address, std::string>;
   {
@@ -579,7 +577,6 @@ TEST(visits, visit_args_forwarding) {
   ASSERT_EQ(val4, 322);
 }
 
-/*
 TEST(swap, valueless) {
   throwing_move_operator_t::swap_called = 0;
   using V = variant<int, throwing_move_operator_t>;
@@ -621,7 +618,7 @@ TEST(swap, different_alternatives) {
   ASSERT_EQ(get<std::string>(a), "kek");
   ASSERT_EQ(get<int>(c), 42);
 }
-*/
+
 TEST(assignment, same_alternative) {
   using V = variant<non_trivial_int_wrapper_t, non_trivial_copy_assignment_t>;
   V a(in_place_type<non_trivial_copy_assignment_t>, 42);

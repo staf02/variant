@@ -222,6 +222,14 @@ CMakeFiles/main.dir/main.cpp.o: /home/staf02/variant-staf02/main.cpp \
   /usr/include/c++/11/bits/ostream.tcc \
   /usr/include/c++/11/istream \
   /usr/include/c++/11/bits/istream.tcc \
+  /usr/include/c++/11/algorithm \
+  /usr/include/c++/11/bits/ranges_algo.h \
+  /usr/include/c++/11/bits/ranges_algobase.h \
+  /usr/include/c++/11/iterator \
+  /usr/include/c++/11/bits/stream_iterator.h \
+  /usr/include/c++/11/bits/ranges_util.h \
+  /usr/include/c++/11/pstl/glue_algorithm_defs.h \
+  /usr/include/c++/11/pstl/execution_defs.h \
   /home/staf02/variant-staf02/test-classes.h \
   /usr/include/c++/11/cassert \
   /usr/include/assert.h \
@@ -231,6 +239,16 @@ CMakeFiles/main.dir/main.cpp.o: /home/staf02/variant-staf02/main.cpp \
 /usr/include/assert.h:
 
 /usr/include/c++/11/cassert:
+
+/usr/include/c++/11/pstl/execution_defs.h:
+
+/usr/include/c++/11/bits/ranges_util.h:
+
+/usr/include/c++/11/bits/stream_iterator.h:
+
+/usr/include/c++/11/iterator:
+
+/usr/include/c++/11/bits/ranges_algobase.h:
 
 /usr/include/c++/11/bits/istream.tcc:
 
@@ -317,6 +335,8 @@ CMakeFiles/main.dir/main.cpp.o: /home/staf02/variant-staf02/main.cpp \
 /usr/include/c++/11/bits/node_handle.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/__FILE.h:
+
+/usr/include/c++/11/bits/ranges_algo.h:
 
 /usr/include/c++/11/bits/invoke.h:
 
@@ -624,6 +644,8 @@ CMakeFiles/main.dir/main.cpp.o: /home/staf02/variant-staf02/main.cpp \
 
 /usr/include/c++/11/ostream:
 
+/usr/include/c++/11/algorithm:
+
 /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h:
 
 /usr/include/c++/11/bits/stl_vector.h:
@@ -657,6 +679,8 @@ CMakeFiles/main.dir/main.cpp.o: /home/staf02/variant-staf02/main.cpp \
 /usr/include/x86_64-linux-gnu/bits/floatn-common.h:
 
 /usr/include/x86_64-linux-gnu/bits/locale.h:
+
+/usr/include/c++/11/pstl/glue_algorithm_defs.h:
 
 /usr/include/ctype.h:
 
