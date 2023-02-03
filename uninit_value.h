@@ -1,6 +1,5 @@
 #include "variant_utils.h"
 #include <type_traits>
-#include <iostream>
 
 namespace variant_utils {
 
@@ -19,11 +18,6 @@ struct uninit_value<Type, true> {
   template <typename... Args>
   constexpr uninit_value(Args&&... args) : storage(std::forward<Args>(args)...) {}
 
-  template<typename OtherHolder>
-  static constexpr void construct_uninit_value(uninit_value* holder, OtherHolder&& other) {
-    new (holder) uninit_value(std::forward<OtherHolder>(other));
-  }
-
   constexpr Type const& get() const& noexcept {
     return storage;
   }
@@ -32,11 +26,11 @@ struct uninit_value<Type, true> {
     return std::move(storage);
   }
 
-  constexpr Type& get()& noexcept {
+  constexpr Type& get() & noexcept {
     return storage;
   }
 
-  constexpr Type&& get()&& noexcept {
+  constexpr Type&& get() && noexcept {
     return std::move(storage);
   }
 
@@ -52,13 +46,9 @@ struct uninit_value<Type, true> {
     this->~uninit_value();
   }
 
-  void swap(uninit_value& other) {
-    using std::swap;
-    swap(storage, other.storage);
-  }
-
   ~uninit_value() = default;
 
+private:
   Type storage;
 };
 
@@ -66,7 +56,7 @@ template <typename Type>
 struct uninit_value<Type, false> {
 
   constexpr uninit_value() noexcept(std::is_nothrow_default_constructible_v<Type>) {
-    new(reinterpret_cast<Type*>(&storage)) Type();
+    std::construct_at(reinterpret_cast<Type*>(&storage));
   }
 
   constexpr uninit_value(uninit_value const&) = default;
@@ -77,11 +67,6 @@ struct uninit_value<Type, false> {
   template <typename... Args>
   uninit_value(Args&&... args) {
     std::construct_at(reinterpret_cast<Type*>(&storage), std::forward<Args>(args)...);
-  }
-
-  template<typename OtherHolder>
-  static constexpr void construct_uninit_value(uninit_value* holder, OtherHolder&& other) {
-    new (holder) uninit_value(std::forward<OtherHolder>(other).get());
   }
 
   const Type& get() const& noexcept {
@@ -100,11 +85,6 @@ struct uninit_value<Type, false> {
     return std::move(*reinterpret_cast<Type*>(&storage));
   }
 
-  void swap(uninit_value& other) {
-    using std::swap;
-    swap(storage, other.storage);
-  }
-
   void construct(uninit_value const& other) {
     std::construct_at(reinterpret_cast<Type*>(&storage), other.get());
   }
@@ -117,6 +97,7 @@ struct uninit_value<Type, false> {
     std::destroy_at(reinterpret_cast<Type*>(&storage));
   }
 
+private:
   std::aligned_storage_t<sizeof(Type), alignof(Type)> storage;
 };
 } // namespace variant_utils

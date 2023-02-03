@@ -1,1 +1,0 @@
-/usr/bin/c++ -g -fsanitize=address,undefined,leak CMakeFiles/tests.dir/tests.cpp.o "CMakeFiles/tests.dir/test-classes.cpp.o" -o tests  vcpkg_installed/x64-linux/debug/lib/libgtestd.a vcpkg_installed/x64-linux/debug/lib/manual-link/libgtest_maind.a vcpkg_installed/x64-linux/debug/lib/libgtestd.a 

@@ -9,8 +9,6 @@ union variant_union {};
 template <typename First, typename... Rest>
 union variant_union<First, Rest...> {
 
-  using value_holder_t = uninit_value<First, std::is_trivially_destructible_v<First>>;
-
   constexpr variant_union() : rest() {}
 
   constexpr variant_union(variant_union const& other) = default;
@@ -25,30 +23,30 @@ union variant_union<First, Rest...> {
   template <typename... Args>
   constexpr variant_union(in_place_index_t<0>, Args&&... args) : first(std::forward<Args>(args)...) {}
 
-  template <size_t I>
+  template <size_t Index>
   void construct(variant_union const& other) {
-    if constexpr (I == 0) {
+    if constexpr (Index == 0) {
       first.construct(other.first);
     } else {
-      rest.template construct<I - 1>(other.rest);
+      rest.template construct<Index - 1>(other.rest);
     }
   }
 
-  template <size_t I>
+  template <size_t Index>
   void construct(variant_union&& other) {
-    if constexpr (I == 0) {
+    if constexpr (Index == 0) {
       first.construct(std::move(other.first));
     } else {
-      rest.template construct<I - 1>(std::move(other.rest));
+      rest.template construct<Index - 1>(std::move(other.rest));
     }
   }
 
-  template <size_t I>
+  template <size_t Index>
   void reset() {
-    if constexpr (I == 0) {
+    if constexpr (Index == 0) {
       first.reset();
     } else {
-      rest.template reset<I - 1>();
+      rest.template reset<Index - 1>();
     }
   }
 
@@ -59,7 +57,7 @@ union variant_union<First, Rest...> {
 
   template <size_t Index, typename... Args>
   decltype(auto) emplace(in_place_index_t<0>, Args&&... args) {
-    new (&first) uninit_value<First>(std::forward<Args>(args)...);
+    std::construct_at(&first, std::forward<Args>(args)...);
     return first.get();
   }
 

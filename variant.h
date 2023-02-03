@@ -1,51 +1,105 @@
 #pragma once
-#include "enable_special_members.h"
-#include "variant_storage.h"
+#include "variant_traits.h"
 #include "variant_union.h"
 #include "variant_utils.h"
 #include <algorithm>
 
 template <typename... Types>
-struct variant
-    : variant_utils::variant_storage_copy_ctor_base<variant_utils::variant_traits<Types...>::trivial_copy_ctor,
-                                                    Types...>,
-      private variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>,
-      private variant_utils::copy_constructor_base<variant_utils::variant_traits<Types...>::copy_ctor>,
-      private variant_utils::move_constructor_base<variant_utils::variant_traits<Types...>::move_ctor>,
-      private variant_utils::copy_assignment_base<variant_utils::variant_traits<Types...>::copy_assign>,
-      private variant_utils::move_assignment_base<variant_utils::variant_traits<Types...>::move_assign> {
+class variant {
 public:
-  using base = variant_utils::variant_storage_copy_ctor_base<variant_utils::variant_traits<Types...>::trivial_copy_ctor,
-                                                             Types...>;
-  using base::base;
+  constexpr variant() requires(!variant_utils::default_ctor<Types...>) = delete;
+  constexpr variant() noexcept(variant_utils::nothrow_default_ctor<Types...>)
+      requires(variant_utils::default_ctor<Types...>)
+      : storage(in_place_index<0>) {}
 
-  constexpr variant() = default;
-  constexpr variant(variant const& other) = default;
-  constexpr variant(variant&& other) = default;
-  variant& operator=(variant const& other) = default;
-  variant& operator=(variant&& other) = default;
+  constexpr variant(variant const& other) noexcept(variant_utils::nothrow_copy_ctor<Types...>) requires
+      variant_utils::copy_ctor<Types...> {
+    if (!other.valueless_by_exception()) {
+      variant_utils::visit_index<void>(
+          [this, &other](auto index) { this->storage.template construct<index>(other.storage); }, other);
+    }
+    this->index_ = other.index_;
+  }
+  constexpr variant(variant&& other) noexcept(variant_utils::nothrow_move_ctor<Types...>)
+      requires(variant_utils::move_ctor<Types...>) {
+    if (!other.valueless_by_exception()) {
+      variant_utils::visit_index<void>(
+          [this, &other](auto index) { this->storage.template construct<index>(std::move(other.storage)); },
+          std::move(other));
+    }
+    this->index_ = other.index_;
+  }
 
-  template <typename T, std::enable_if_t<(sizeof...(Types) > 0) && !std::is_same_v<std::decay_t<T>, variant> &&
-                                             !variant_utils::is_type_spec_v<T, in_place_type_t> &&
-                                             !variant_utils::is_size_spec_v<T, in_place_index_t> &&
-                                             std::is_constructible_v<variant_utils::find_overload_t<T, Types...>, T>,
-                                         int> = 0>
-  constexpr variant(T&& t) noexcept(
-      variant_utils::variant_traits<Types...>::template nothrow_converting_constructible<T>)
+  variant& operator=(variant const& other) noexcept(variant_utils::nothrow_copy_assign<Types...>)
+      requires(variant_utils::copy_assign<Types...>) {
+    if (other.valueless_by_exception()) {
+      if (this->valueless_by_exception()) {
+        return *this;
+      }
+      this->reset();
+      return *this;
+    }
+    variant_utils::visit_index<void>(
+        [this, other](auto this_index, auto other_index) {
+          if constexpr (this_index == other_index) {
+            ::get<this_index>(*this) = ::get<other_index>(other);
+          } else {
+            this->template emplace<other_index>(::get<other_index>(other));
+          }
+        },
+        *this, other);
+    return *this;
+  }
+
+  variant& operator=(variant&& other) noexcept(variant_utils::nothrow_move_assign<Types...>)
+      requires(variant_utils::move_assign<Types...>) {
+    if (other.valueless_by_exception()) {
+      if (this->valueless_by_exception()) {
+        return *this;
+      }
+      this->reset();
+      return *this;
+    }
+    variant_utils::visit_index<void>(
+        [this, &other](auto this_index, auto other_index) {
+          if constexpr (this_index == other_index) {
+            ::get<this_index>(*this) = ::get<other_index>(std::move(other));
+          } else {
+            this->template emplace<other_index>(::get<other_index>(std::move(other)));
+          }
+        },
+        *this, std::move(other));
+    return *this;
+  }
+
+  constexpr variant(variant const& other)
+      requires(variant_utils::copy_ctor<Types...>&& variant_utils::trivial_copy_ctor<Types...>) = default;
+  constexpr variant(variant&& other)
+      requires(variant_utils::move_ctor<Types...>&& variant_utils::trivial_move_ctor<Types...>) = default;
+  variant& operator=(variant const& other)
+      requires(variant_utils::copy_assign<Types...>&& variant_utils::trivial_copy_assign<Types...>) = default;
+  variant& operator=(variant&& other)
+      requires(variant_utils::move_assign<Types...>&& variant_utils::trivial_move_assign<Types...>) = default;
+
+  template <typename T>
+  requires(
+      (sizeof...(Types) > 0) && !std::is_same_v<std::decay_t<T>, variant> &&
+      !variant_utils::is_type_spec_v<T, in_place_type_t> && !variant_utils::is_size_spec_v<T, in_place_index_t> &&
+      std::is_constructible_v<variant_utils::find_overload_t<T, Types...>,
+                              T>) constexpr variant(T&& t) noexcept(variant_utils::nothrow_convert_ctor<T, Types...>)
       : variant(in_place_type_t<variant_utils::find_overload_t<T, Types...>>(), std::forward<T>(t)) {}
 
-  template <typename T, std::enable_if_t<(sizeof...(Types) > 0) && !std::is_same_v<std::decay_t<T>, variant> &&
-                                             std::is_assignable_v<variant_utils::find_overload_t<T, Types...>&, T> &&
-                                             std::is_constructible_v<variant_utils::find_overload_t<T, Types...>, T>,
-                                         int> = 0>
-  constexpr variant&
-  operator=(T&& t) noexcept(variant_utils::variant_traits<Types...>::template nothrow_converting_assignable<T>) {
+  template <typename T>
+  requires((sizeof...(Types) > 0) && !std::is_same_v<std::decay_t<T>, variant> &&
+           std::is_assignable_v<variant_utils::find_overload_t<T, Types...>&, T> &&
+           std::is_constructible_v<variant_utils::find_overload_t<T, Types...>, T>) constexpr variant&
+  operator=(T&& t) noexcept(variant_utils::nothrow_convert_assign<T, Types...>) {
     using Target = variant_utils::find_overload_t<T, Types...>;
-    if (this->index() == variant_utils::type_index_v<Target, Types...>) {
-      ::get<variant_utils::type_index_v<Target, Types...>>(*this) = std::forward<T>(t);
+    if (this->index() == variant_utils::index_chooser_v<Target, Types...>) {
+      ::get<variant_utils::index_chooser_v<Target, Types...>>(*this) = std::forward<T>(t);
     } else {
       if constexpr (std::is_nothrow_constructible_v<Target, T> || !std::is_nothrow_move_constructible_v<Target>) {
-        this->template emplace<variant_utils::type_index_v<Target, Types...>>(std::forward<T>(t));
+        this->template emplace<variant_utils::index_chooser_v<Target, Types...>>(std::forward<T>(t));
       } else {
         this->operator=(variant(std::forward<T>(t)));
       }
@@ -53,26 +107,26 @@ public:
     return *this;
   }
 
-  constexpr ~variant() = default;
+  constexpr ~variant() requires(!(std::is_trivially_destructible_v<Types> && ...)) {
+    this->reset();
+  }
 
-  template <size_t Index, typename... Args,
-      std::enable_if_t<Index < sizeof...(Types) &&
-          std::is_constructible_v<variant_utils::types_at_t<Index, Types...>, Args...>, int> = 0>
-      explicit constexpr variant(in_place_index_t<Index>,
-                                            Args&&... args) : base(in_place_index<Index>, std::forward<Args>(args)...),
-      variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>(
-          variant_utils::default_constructor_tag()) {}
+  constexpr ~variant() requires(std::is_trivially_destructible_v<Types>&&...) = default;
 
-  template<typename T, typename... Args, std::enable_if_t<
-                                              variant_utils::exactly_once_v<T, Types...> && std::is_constructible_v<T, Args...>, int> = 0>
-  constexpr explicit variant(in_place_type_t<T>, Args&&... args)
-      : base(in_place_index<variant_utils::index_chooser_v<T, variant<Types...>>>, std::forward<Args>(args)...),
-        variant_utils::default_constructor_base<variant_utils::variant_traits<Types...>::default_ctor>(
-            variant_utils::default_constructor_tag()) {}
+  template <size_t Index, typename... Args>
+  requires(Index < sizeof...(Types) &&
+           std::is_constructible_v<variant_utils::types_at_t<Index, Types...>,
+                                   Args...>) explicit constexpr variant(in_place_index_t<Index>, Args&&... args)
+      : storage(in_place_index<Index>, std::forward<Args>(args)...), index_(Index) {}
+
+  template <typename T, typename... Args>
+  requires(variant_utils::exactly_once_v<T, Types...>&& std::is_constructible_v<T, Args...>) constexpr explicit variant(
+      in_place_type_t<T>, Args&&... args)
+      : variant(in_place_index<variant_utils::index_chooser_v<T, Types...>>, std::forward<Args>(args)...) {}
 
   template <class T, class... Args>
   T& emplace(Args&&... args) {
-    return emplace<variant_utils::index_chooser_v<T, variant<Types...>>>(std::forward<Args>(args)...);
+    return emplace<variant_utils::index_chooser_v<T, Types...>>(std::forward<Args>(args)...);
   }
 
   template <size_t Index, class... Args>
@@ -81,17 +135,6 @@ public:
     auto& res = this->storage.template emplace<Index>(in_place_index<Index>, std::forward<Args>(args)...);
     this->index_ = Index;
     return res;
-  }
-
-  void emplace_variant(variant&& other) {
-    variant_utils::visit_index<void>(
-        [this, &other](auto _index) { this->template emplace<_index>(::get<_index>(std::move(other))); },
-        std::forward<variant>(other));
-  }
-
-  void emplace_variant(variant const& other) {
-    variant_utils::visit_index<void>(
-        [this, &other](auto _index) { this->template emplace<_index>(::get<_index>(other)); }, other);
   }
 
   void swap(variant& other) noexcept(((std::is_nothrow_move_constructible_v<Types> &&
@@ -155,11 +198,21 @@ private:
   constexpr auto const& get(in_place_index_t<Index>) const noexcept {
     return this->storage.get(in_place_index<Index>);
   }
+
+  void reset() {
+    if (index_ != variant_npos) {
+      variant_utils::visit_index<void>([this](auto this_index) { this->storage.template reset<this_index>(); }, *this);
+      index_ = variant_npos;
+    }
+  }
+
+  variant_utils::variant_union<Types...> storage;
+  size_t index_{0};
 };
 
-template <class T, class... Args>
-constexpr bool holds_alternative(const variant<Args...>& v) noexcept {
-  return v.index() == variant_utils::index_chooser_v<T, variant<Args...>>;
+template <class T, class... Types>
+constexpr bool holds_alternative(const variant<Types...>& v) noexcept {
+  return v.index() == variant_utils::index_chooser_v<T, Types...>;
 }
 
 template <size_t I, class... Args>
@@ -176,10 +229,10 @@ get_if(const variant<Args...>* pv) noexcept {
   return get_if(pv);
 }
 
-template <class T, class... Args>
-constexpr std::add_pointer_t<T> get_if(variant<Args...>* pv) noexcept {
-  if (pv->index() == variant_utils::index_chooser_v<T, variant<Args...>>) {
-    return std::addressof(get<variant_utils::index_chooser_v<T, variant<Args...>>>(*pv));
+template <class T, class... Types>
+constexpr std::add_pointer_t<T> get_if(variant<Types...>* pv) noexcept {
+  if (pv->index() == variant_utils::index_chooser_v<T, Types...>) {
+    return std::addressof(get<variant_utils::index_chooser_v<T, Types...>>(*pv));
   }
   return nullptr;
 }
@@ -225,20 +278,19 @@ constexpr bool operator!=(const variant<Types...>& v, const variant<Types...>& w
 
 template <class... Types>
 constexpr bool operator<(const variant<Types...>& v, const variant<Types...>& w) {
+  if (w.valueless_by_exception()) {
+    return false;
+  } else if (v.valueless_by_exception()) {
+    return true;
+  }
   return variant_utils::visit_index<bool>(
       [&v, &w](auto index1, auto index2) -> bool {
-        if (w.valueless_by_exception()) {
-          return false;
-        } else if (v.valueless_by_exception()) {
+        if constexpr (index1 < index2) {
           return true;
+        } else if constexpr (index1 > index2) {
+          return false;
         } else {
-          if constexpr (index1 < index2) {
-            return true;
-          } else if constexpr (index1 > index2) {
-            return false;
-          } else {
-            return get<index1>(v) < get<index2>(w);
-          }
+          return get<index1>(v) < get<index2>(w);
         }
       },
       v, w);
@@ -246,20 +298,19 @@ constexpr bool operator<(const variant<Types...>& v, const variant<Types...>& w)
 
 template <class... Types>
 constexpr bool operator>(const variant<Types...>& v, const variant<Types...>& w) {
+  if (v.valueless_by_exception()) {
+    return false;
+  } else if (w.valueless_by_exception()) {
+    return true;
+  }
   return variant_utils::visit_index<bool>(
       [&v, &w](auto index1, auto index2) -> bool {
-        if (v.valueless_by_exception()) {
-          return false;
-        } else if (w.valueless_by_exception()) {
+        if constexpr (index1 > index2) {
           return true;
+        } else if constexpr (index1 < index2) {
+          return false;
         } else {
-          if constexpr (index1 > index2) {
-            return true;
-          } else if constexpr (index1 < index2) {
-            return false;
-          } else {
-            return get<index1>(v) > get<index2>(w);
-          }
+          return get<index1>(v) > get<index2>(w);
         }
       },
       v, w);
@@ -267,20 +318,19 @@ constexpr bool operator>(const variant<Types...>& v, const variant<Types...>& w)
 
 template <class... Types>
 constexpr bool operator<=(const variant<Types...>& v, const variant<Types...>& w) {
-  return variant_utils::visit_index(
+  if (v.valueless_by_exception()) {
+    return true;
+  } else if (w.valueless_by_exception()) {
+    return false;
+  }
+  return variant_utils::visit_index<bool>(
       [&v, &w](auto index1, auto index2) -> bool {
-        if (w.valueless_by_exception()) {
-          return false;
-        } else if (v.valueless_by_exception()) {
+        if constexpr (index1 < index2) {
           return true;
+        } else if constexpr (index1 > index2) {
+          return false;
         } else {
-          if constexpr (index1 < index2) {
-            return true;
-          } else if constexpr (index1 > index2) {
-            return false;
-          } else {
-            return get<index1>(v) <= get<index2>(w);
-          }
+          return get<index1>(v) <= get<index2>(w);
         }
       },
       v, w);
@@ -288,20 +338,19 @@ constexpr bool operator<=(const variant<Types...>& v, const variant<Types...>& w
 
 template <class... Types>
 constexpr bool operator>=(const variant<Types...>& v, const variant<Types...>& w) {
+  if (w.valueless_by_exception()) {
+    return true;
+  } else if (v.valueless_by_exception()) {
+    return false;
+  }
   return variant_utils::visit_index<bool>(
       [&v, &w](auto index1, auto index2) -> bool {
-        if (v.valueless_by_exception()) {
-          return false;
-        } else if (w.valueless_by_exception()) {
+        if constexpr (index1 > index2) {
           return true;
+        } else if constexpr (index1 < index2) {
+          return false;
         } else {
-          if constexpr (index1 > index2) {
-            return true;
-          } else if constexpr (index1 < index2) {
-            return false;
-          } else {
-            return get<index1>(v) >= get<index2>(w);
-          }
+          return get<index1>(v) >= get<index2>(w);
         }
       },
       v, w);

@@ -1,6 +1,7 @@
 #pragma once
 #include "variant.h"
 #include "variant_utils.h"
+#include <concepts>
 #include <type_traits>
 
 namespace variant_utils {
@@ -17,64 +18,79 @@ struct nth_type<0, First, Rest...> {
 };
 
 template <typename... Types>
-struct variant_traits {
-  static constexpr bool default_ctor = std::is_default_constructible_v<typename nth_type<0, Types...>::type>;
-  static constexpr bool copy_ctor = (std::is_copy_constructible_v<Types> && ...);
-  static constexpr bool move_ctor = (std::is_move_constructible_v<Types> && ...);
-  static constexpr bool copy_assign = copy_ctor && (std::is_copy_assignable_v<Types> && ...);
-  static constexpr bool move_assign = move_ctor && (std::is_move_assignable_v<Types> && ...);
+concept default_ctor = std::is_default_constructible_v<typename nth_type<0, Types...>::type>;
 
-  static constexpr bool trivial_dtor = (std::is_trivially_destructible_v<Types> && ...);
-  static constexpr bool trivial_copy_ctor = (std::is_trivially_copy_constructible_v<Types> && ...);
-  static constexpr bool trivial_move_ctor = (std::is_trivially_move_constructible_v<Types> && ...);
-  static constexpr bool trivial_copy_assign =
-      trivial_dtor && trivial_copy_ctor && (std::is_trivially_copy_assignable_v<Types> && ...);
-  static constexpr bool trivial_move_assign =
-      trivial_dtor && trivial_move_ctor && (std::is_trivially_move_assignable_v<Types> && ...);
+template <typename... Types>
+concept copy_ctor = (std::is_copy_constructible_v<Types> && ...);
 
-  template <typename T>
-  struct is_in_place : std::integral_constant<bool, false> {};
+template <typename... Types>
+concept move_ctor = (std::is_move_constructible_v<Types> && ...);
 
-  template <typename T>
-  struct is_in_place<in_place_type_t<T>> : std::integral_constant<bool, true> {};
+template <typename... Types>
+concept copy_assign = copy_ctor<Types...> && (std::is_copy_assignable_v<Types> && ...);
 
-  template <size_t I>
-  struct is_in_place<in_place_index_t<I>> : std::integral_constant<bool, true> {};
+template <typename... Types>
+concept move_assign = move_ctor<Types...> && (std::is_move_assignable_v<Types> && ...);
 
-  template <typename T>
-  static constexpr bool is_in_place_v = !is_in_place<T>::value;
+template <typename... Types>
+inline constexpr bool trivial_dtor = (std::is_trivially_destructible_v<Types> && ...);
 
-  template <typename T,
-            std::enable_if_t<index_chooser_v<T, variant<Types...>><sizeof...(Types), int> = 0> static constexpr bool
-                converting_constructible =
-                    (sizeof...(Types) > 0) &&
-                    (!std::is_same_v<variant<Types...>, std::decay_t<T>>)&&(is_in_place_v<T>)&&(
-                        std::is_constructible_v<
-                            variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>);
+template <typename... Types>
+concept trivial_copy_ctor = (std::is_trivially_copy_constructible_v<Types> && ...);
 
-  template <size_t Index, typename = std::enable_if_t<(Index < sizeof...(Types))>>
-  using to_type = variant_alternative_t<Index, variant<Types...>>;
+template <typename... Types>
+concept trivial_move_ctor = (std::is_trivially_move_constructible_v<Types> && ...);
 
-  // The following nothrow traits are for non-trivial SMFs. Trivial SMFs
-  // are always nothrow.
-  static constexpr bool nothrow_default_ctor =
-      std::is_nothrow_default_constructible_v<typename nth_type<0, Types...>::type>;
-  static constexpr bool nothrow_copy_ctor = false;
-  static constexpr bool nothrow_move_ctor = (std::is_nothrow_move_constructible_v<Types> && ...);
-  static constexpr bool nothrow_copy_assign = false;
-  static constexpr bool nothrow_move_assign = nothrow_move_ctor && (std::is_nothrow_move_assignable_v<Types> && ...);
+template <typename... Types>
+concept trivial_copy_assign =
+    trivial_dtor<Types...> && trivial_copy_ctor<Types...> && (std::is_trivially_copy_assignable_v<Types> && ...);
 
-  template <typename T,
-            std::enable_if_t<index_chooser_v<T, variant<Types...>><sizeof...(Types), int> = 0> static constexpr bool
-                nothrow_converting_constructible = std::is_nothrow_constructible_v<
-                    variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>;
-  template <typename T,
-            std::enable_if_t<index_chooser_v<T, variant<Types...>><sizeof...(Types), int> = 0> static constexpr bool
-                nothrow_converting_assignable = nothrow_converting_constructible<T>&& std::is_nothrow_assignable_v<
-                    variant_alternative_t<index_chooser_v<T, variant<Types...>>, variant<Types...>>, T>;
+template <typename... Types>
+concept trivial_move_assign =
+    trivial_dtor<Types...> && trivial_move_ctor<Types...> && (std::is_trivially_move_assignable_v<Types> && ...);
 
-  template <size_t Index, typename... Args>
-  static constexpr bool in_place_index_ctor =
-      Index < sizeof...(Types) && std::is_constructible_v<variant_utils::types_at_t<Index, Types...>, Args...>;
-};
+template <typename... Types>
+concept nothrow_default_ctor = std::is_nothrow_default_constructible_v<typename nth_type<0, Types...>::type>;
+
+template <typename... Types>
+concept nothrow_copy_ctor = false;
+
+template <typename... Types>
+concept nothrow_move_ctor = (std::is_nothrow_move_constructible_v<Types> && ...);
+
+template <typename... Types>
+concept nothrow_copy_assign = false;
+
+template <typename... Types>
+concept nothrow_move_assign = nothrow_move_ctor<Types...> && (std::is_nothrow_move_assignable_v<Types> && ...);
+
+template <typename T, typename... Types>
+concept nothrow_convert_ctor =
+    std::is_nothrow_constructible_v<variant_alternative_t<index_chooser_v<T, Types...>, variant<Types...>>, T>;
+
+template <typename T, typename... Types>
+concept nothrow_convert_assign =
+    nothrow_convert_ctor<T, Types...> &&
+    std::is_nothrow_assignable_v<variant_alternative_t<index_chooser_v<T, Types...>, variant<Types...>>, T>;
+
+template <typename T, typename... Types>
+inline constexpr bool exactly_once_v = (std::is_same_v<T, Types> + ...) == 1;
+
+template <typename T, template <typename...> typename Template>
+struct is_type_spec : std::false_type {};
+
+template <template <typename...> typename Template, typename... Args>
+struct is_type_spec<Template<Args...>, Template> : std::true_type {};
+
+template <typename T, template <typename...> typename Template>
+inline constexpr bool is_type_spec_v = is_type_spec<T, Template>::value;
+
+template <typename T, template <size_t...> typename Template>
+struct is_size_spec : std::false_type {};
+
+template <template <size_t...> typename Template, size_t... Args>
+struct is_size_spec<Template<Args...>, Template> : std::true_type {};
+
+template <typename T, template <size_t...> typename Template>
+inline constexpr bool is_size_spec_v = is_size_spec<T, Template>::value;
 } // namespace variant_utils
