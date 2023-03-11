@@ -33,7 +33,7 @@ template <typename... Types>
 concept move_assign = move_ctor<Types...> && (std::is_move_assignable_v<Types> && ...);
 
 template <typename... Types>
-inline constexpr bool trivial_dtor = (std::is_trivially_destructible_v<Types> && ...);
+concept trivial_dtor = (std::is_trivially_destructible_v<Types> && ...);
 
 template <typename... Types>
 concept trivial_copy_ctor = (std::is_trivially_copy_constructible_v<Types> && ...);
@@ -76,21 +76,4 @@ concept nothrow_convert_assign =
 template <typename T, typename... Types>
 inline constexpr bool exactly_once_v = (std::is_same_v<T, Types> + ...) == 1;
 
-template <typename T, template <typename...> typename Template>
-struct is_type_spec : std::false_type {};
-
-template <template <typename...> typename Template, typename... Args>
-struct is_type_spec<Template<Args...>, Template> : std::true_type {};
-
-template <typename T, template <typename...> typename Template>
-inline constexpr bool is_type_spec_v = is_type_spec<T, Template>::value;
-
-template <typename T, template <size_t...> typename Template>
-struct is_size_spec : std::false_type {};
-
-template <template <size_t...> typename Template, size_t... Args>
-struct is_size_spec<Template<Args...>, Template> : std::true_type {};
-
-template <typename T, template <size_t...> typename Template>
-inline constexpr bool is_size_spec_v = is_size_spec<T, Template>::value;
 } // namespace variant_utils

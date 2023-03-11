@@ -9,7 +9,7 @@ template <typename... Args>
 class variant;
 
 namespace variant_utils {
-template <typename... Other>
+template <typename... Types>
 union variant_union;
 } // namespace variant_utils
 
@@ -39,11 +39,8 @@ public:
   bad_variant_access() noexcept {}
 
   const char* what() const noexcept override {
-    return reason;
+    return "bad variant access";
   }
-
-private:
-  const char* reason = "bad variant access";
 };
 
 // indexes
@@ -129,18 +126,6 @@ struct find_overload<T, std::index_sequence<Indexes...>, Types...> : fun<T, Type
 
 template <typename T, typename... Types>
 using find_overload_t = typename std::invoke_result_t<find_overload<T, std::index_sequence_for<Types...>, Types...>, T>;
-
-template <size_t Index, bool less, typename... Types>
-struct type_at {};
-
-template <size_t Index, typename... Types>
-struct type_at<Index, true, Types...> {
-  using type = std::tuple_element_t<Index, std::tuple<Types...>>;
-};
-
-template <size_t Index, typename... Types>
-using types_at_t = typename type_at < Index,
-      Index<sizeof...(Types), Types...>::type;
 
 template <bool is_same, typename CurrentType, typename... Types>
 struct index_chooser {
@@ -253,7 +238,7 @@ constexpr std::array<std::common_type_t<Args...>, sizeof...(Args)> make_array(Ar
   return {std::forward<Args>(args)...};
 }
 
-template <bool indexed, typename R, typename Visitor, size_t Index, typename PrefixIndexesSeq, typename VariantSeq,
+template <bool indexed, typename R, typename Visitor, size_t Index, typename PrefixIndexes, typename NextIndexes,
           typename... Variants>
 struct visit_table;
 
@@ -284,8 +269,9 @@ struct visit_table<indexed, R, Visitor, Index, std::index_sequence<PrefixIndexes
 };
 
 template <bool indexed, typename R, typename Visitor, typename... Variants>
-using visit_table_t = visit_table<indexed, R, Visitor, 0, std::index_sequence<>,
-                                  variant_utils::get_next_indexes_t<0, Variants...>, Variants...>;
+inline constexpr auto visit_table_v =
+    visit_table<indexed, R, Visitor, 0, std::index_sequence<>, variant_utils::get_next_indexes_t<0, Variants...>,
+                Variants...>::build_next();
 
 template <typename Overload>
 constexpr auto const& get_overload(Overload const& overload) {
@@ -300,13 +286,13 @@ constexpr auto const& get_overload(Overload const& overload, size_t index, Is...
 template <typename Visitor, typename... Variants>
 constexpr decltype(auto) visit_index(Visitor&& vis, Variants&&... vars) {
   using R = decltype(std::invoke(std::forward<Visitor>(vis), get<0>(std::forward<Variants>(vars))...));
-  return variant_utils::get_overload(visit_table_t<true, R, Visitor&&, Variants&&...>::build_next(),
+  return variant_utils::get_overload(visit_table_v<true, R, Visitor&&, Variants&&...>,
                                      vars.index()...)(std::forward<Visitor>(vis), std::forward<Variants>(vars)...);
 }
 
 template <typename R, typename Visitor, typename... Variants>
 constexpr R visit_index(Visitor&& vis, Variants&&... vars) {
-  return variant_utils::get_overload(visit_table_t<true, R, Visitor&&, Variants&&...>::build_next(),
+  return variant_utils::get_overload(visit_table_v<true, R, Visitor&&, Variants&&...>,
                                      vars.index()...)(std::forward<Visitor>(vis), std::forward<Variants>(vars)...);
 }
 
@@ -317,9 +303,8 @@ constexpr decltype(auto) visit(Visitor&& vis, Variants&&... vars) {
   if ((vars.valueless_by_exception() || ...)) {
     throw bad_variant_access();
   }
-
   using R = decltype(std::invoke(std::forward<Visitor>(vis), get<0>(std::forward<Variants>(vars))...));
-  return variant_utils::get_overload(variant_utils::visit_table_t<false, R, Visitor&&, Variants&&...>::build_next(),
+  return variant_utils::get_overload(variant_utils::visit_table_v<false, R, Visitor&&, Variants&&...>,
                                      vars.index()...)(std::forward<Visitor>(vis), std::forward<Variants>(vars)...);
 }
 
@@ -329,6 +314,6 @@ constexpr R visit(Visitor&& vis, Variants&&... vars) {
     throw bad_variant_access();
   }
 
-  return variant_utils::get_overload(variant_utils::visit_table_t<false, R, Visitor&&, Variants&&...>::build_next(),
+  return variant_utils::get_overload(variant_utils::visit_table_v<false, R, Visitor&&, Variants&&...>,
                                      vars.index()...)(std::forward<Visitor>(vis), std::forward<Variants>(vars)...);
 }

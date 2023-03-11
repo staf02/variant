@@ -84,7 +84,6 @@ public:
   template <typename T>
   requires(
       (sizeof...(Types) > 0) && !std::is_same_v<std::decay_t<T>, variant> &&
-      !variant_utils::is_type_spec_v<T, in_place_type_t> && !variant_utils::is_size_spec_v<T, in_place_index_t> &&
       std::is_constructible_v<variant_utils::find_overload_t<T, Types...>,
                               T>) constexpr variant(T&& t) noexcept(variant_utils::nothrow_convert_ctor<T, Types...>)
       : variant(in_place_type_t<variant_utils::find_overload_t<T, Types...>>(), std::forward<T>(t)) {}
@@ -115,7 +114,7 @@ public:
 
   template <size_t Index, typename... Args>
   requires(Index < sizeof...(Types) &&
-           std::is_constructible_v<variant_utils::types_at_t<Index, Types...>,
+           std::is_constructible_v<variant_alternative_t<Index, variant<Types...>>,
                                    Args...>) explicit constexpr variant(in_place_index_t<Index>, Args&&... args)
       : storage(in_place_index<Index>, std::forward<Args>(args)...), index_(Index) {}
 
@@ -162,9 +161,7 @@ public:
               using std::swap;
               swap(::get<this_index>(*this), ::get<this_index>(other));
             } else {
-              auto tmp = std::move(::get<other_index>(other));
-              other.template emplace<this_index>(std::move(::get<this_index>(*this)));
-              this->template emplace<other_index>(std::move(tmp));
+              std::swap(*this, other);
             }
           },
           *this, other);
