@@ -149,10 +149,7 @@ public:
       other.reset();
       return;
     } else if (other.valueless_by_exception()) {
-      variant_utils::visit_index<void>(
-          [this, &other](auto this_index) { other.template emplace<this_index>(::get<this_index>(std::move(*this))); },
-          std::forward<variant>(*this));
-      this->reset();
+      other.swap(*this);
       return;
     } else {
       variant_utils::visit_index<void>(
